@@ -22,6 +22,11 @@ public class ChatClientApp {
 		System.out.println("[Client] "+  msg  );
 	}
 	
+	private static String requestJoin(String name) {
+		
+		return  "JOIN"+FS+"ASK"+FS+name; 
+	}
+	
 	
 	public static void main(String[] args) {
 		
@@ -31,7 +36,6 @@ public class ChatClientApp {
 		Socket socket = null;
 
 		while( true ) {
-			
 			consoleLog("대화명을 입력하세요.");
 			System.out.print(">>> ");
 			name = scanner.nextLine();
@@ -48,6 +52,7 @@ public class ChatClientApp {
 		
 		// -->JOIN 둘리\r\n
 		try {
+			consoleLog("Connect try -> IP : "+SERVER_IP+", PORT : "+SERVER_PORT);
 			socket = new Socket();
 			// 2. Server Connect			
 			socket.connect( new InetSocketAddress(SERVER_IP, SERVER_PORT) );
@@ -58,14 +63,17 @@ public class ChatClientApp {
 			BufferedReader br = new BufferedReader( new InputStreamReader( is, "utf-8") );
 			PrintWriter pw = new PrintWriter( new OutputStreamWriter( os, "utf-8" ), true);
 			
-			pw.println( "JOIN"+FS+"ASK"+FS+name );
+			consoleLog("Ask to Join : "+requestJoin(name));
+			pw.println( requestJoin(name) );
 			// 4. Write/Read
 			// <--JOIN:OK\r\n
 			
-			while ( true ) {
 
 				String echoMsg = br.readLine();
-				
+				consoleLog("echoMsg : "+ echoMsg);
+				/*if (echoMsg == null) {
+					//continue;
+				}*/
 				//프로토콜 분석
 
 				String[] tokens = echoMsg.split( String.valueOf(FS) );
@@ -74,31 +82,36 @@ public class ChatClientApp {
 				String content  = tokens[2];
 				
 				
-				if( "JOIN".equals( protocol ) && "SUCCESS".equals( type ) ) {
+				if ("SUCCESS".equals(type)) {
+					new ChatWindow(name, socket, br, pw).show();
+				}
+				
+				/*if( "JOIN".equals( protocol ) && "SUCCESS".equals( type ) ) {
 					new ChatWindow(name, socket, br).show();
+				} else if ("MESSAGE".equals( protocol )) {
+					//
 				} else if ("QUIT".equals( protocol )) {
-					break;
+					//break;
 				} else {
 				   consoleLog( "에러:알수 없는 응답(" + protocol + ")" );
-				}
+				}*/
 				
 
 				
-			}
 			
 			
 		} catch( IOException e ) {
 			e.printStackTrace();
 		} finally {
-			try {
-				if (socket != null && socket.isClosed() == false ) {
-					socket.close();
-				}
-			} catch (IOException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			scanner.close();
+//			try {
+//				if (socket != null && socket.isClosed() == false ) {
+//					socket.close();
+//				}
+//			} catch (IOException e) {
+//				// TODO Auto-generated catch block
+//				e.printStackTrace();
+//			}
+			//scanner.close();
 		}
 		
 		

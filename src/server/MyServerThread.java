@@ -56,6 +56,7 @@ public class MyServerThread extends Thread{
 			while( true ) {
 				//6. 데이터 읽기 (read)
 				String msg = br.readLine();
+				consoleLog("Received msg : "+msg);
 				
 				//클라이언트로부터 연결 끊김
 				if( msg == null ) {
@@ -95,8 +96,8 @@ public class MyServerThread extends Thread{
 				
 				
 				// 7. 데이터 쓰기 (write) 
-				consoleLog("Received : " + msg );
-				pw.println( msg );
+				//consoleLog("Received : " + msg );
+				//pw.println( msg );
 			}
 			
 		} catch( SocketException e ) {
@@ -116,13 +117,24 @@ public class MyServerThread extends Thread{
 	}
 	
 	
-	private void doJoin( String nickName, Writer writer ) {
+	private void doJoin( String nickName, PrintWriter writer ) {
+		consoleLog("====== doJoin ======");
 		this.nickname = nickName;
-		
-		String data = "## "+nickName + "님이 참여하였습니다 ##";
-		
 		addWriter( nickName, writer );
-		broadcast(data);
+		
+		//접속 성공 응답 보내야됨
+		consoleLog("====== send response join ======");
+		//doMessage(writer, responeJoin());
+		writer.println(responeJoin());
+		writer.flush();
+		
+		
+		//그다음 이 메세지를 전체에게 보내야됨 
+		String data = "## "+nickName + "님이 참여하였습니다 ##";
+		consoleLog("====== send broadcast join ======");
+		broadcast( makeBrodcast(data) );
+		
+		
 	}
 	
 	private void addWriter( String nickName, Writer writer ) {
@@ -133,10 +145,30 @@ public class MyServerThread extends Thread{
 	
 	
 	
+//	private void doMessage(Writer writer, String message  ) {
+//
+//		String data =  "["+nickname+"] "+message;  
+//		
+//		
+//		synchronized( listWriters ) {
+//			Set<String> set = listWriters.keySet();
+//			   
+//			   Iterator<String> it = set.iterator();
+//			   while(it.hasNext()) {
+//				   if (it.next().equals(nickname) ) {
+//					   PrintWriter printWriter = (PrintWriter)listWriters.get(it);
+//					   printWriter.println(  "MESSAGE"+FS+"RECEIVE"+FS+data );
+//			    	   printWriter.flush();
+//				   }
+//			   }
+//		}
+//
+//	}
+	
 	private void doMessage( String message ) {
 
 		String data =  "["+nickname+"] "+message;  
-		broadcast( data );
+		broadcast( "MESSAGE"+FS+"RECEIVE"+FS+data );
 
 	}
 
@@ -161,7 +193,8 @@ public class MyServerThread extends Thread{
 	
 
 	private void doQuit(  Writer writer ) {
-		consoleLog(nickname+" sended QUIT");
+		consoleLog("====== doQuit ======");
+		//consoleLog(nickname+" sended QUIT");
 		removeWriter( writer );
 			
 		String data = "## "+nickname + "님이 퇴장 하였습니다 ##";
@@ -178,14 +211,24 @@ public class MyServerThread extends Thread{
 			   
 			   Iterator<String> it = set.iterator();
 			   while(it.hasNext()) {
-				   if (it.next().equals(nickname) ) {
-					   listWriters.remove(nickname);
+				   consoleLog("it.next() : "+it.next()+", nickname : "+nickname);
+				   if (it.equals(nickname) ) {
+					   listWriters.remove(it);
+					   break;
 				   }
 			   }
 		}
 	}
+	
+	
+	private String responeJoin() {
+		//
+		return "JOIN"+FS+"SUCCESS"+FS+"-";
+	}
 
-
+	private String makeBrodcast(String data) {
+		return "MESSAGE"+FS+"RECEIVE"+FS+data;
+	}
 
 
 	

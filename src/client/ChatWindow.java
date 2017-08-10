@@ -19,11 +19,13 @@ import java.net.Socket;
 import java.util.Scanner;
 
 public class ChatWindow {
-
+	static char FS = ':';
+	
 	private BufferedReader br;
 	private PrintWriter pw;
 	
 	Socket socket = null;
+	private String nickName = null;
 	
 	
 	
@@ -35,13 +37,22 @@ public class ChatWindow {
 	
 	Scanner scanner = new Scanner( System.in );
 
-	public ChatWindow(String name, Socket socket, BufferedReader br) {
+	private static void consoleLog( String msg) {
+		System.out.println("[Client] "+  msg  );
+	}
+	
+	public ChatWindow(String name, Socket socket, BufferedReader br, PrintWriter pw) {
+		
 		frame = new Frame(name);
 		pannel = new Panel();
 		buttonSend = new Button("Send");
 		textField = new TextField();
 		textArea = new TextArea(30, 80);
 		
+		this.socket = socket;
+		this.br = br;
+		this.nickName = name;
+		this.pw = pw;
 		
 
 	}
@@ -91,6 +102,7 @@ public class ChatWindow {
 		frame.pack();
 		
 		//스레드 생성 
+		consoleLog("- Tread Start -");
 		new ChatClientReceiveThread().start();
 		
 		
@@ -111,31 +123,23 @@ public class ChatWindow {
 	}
 	
 	private void sendMessage() {
+		consoleLog("====== sendMessage ======");
 		String message = textField.getText();
+		if (message == null) {
+			consoleLog("text is empty.");
+			return;
+		}
 
-		//test code
-		//리시브 스레드에서 받아서 넣어야 되는 코드 
-		//textArea.append( "둘리:" + message );
-		//textArea.append("\n");
 		
-		
-		//여기서 서버로 데이터를 전송해야되!
-		String msg = scanner.nextLine();
-		
-		if( "exit".equals(msg)) {
-			//서버와 연결을 끊어야해 
+		if( "exit".equals(message)) {
+			//서버와 연결을 끊어야해
+			consoleLog("Ask to exit : "+"QUIT"+FS+"ASK"+FS+nickName);
+			pw.println( "QUIT"+FS+"ASK"+FS+nickName );
 		}
 		
 		//메세지 보내기 
-		pw.println( msg );
+		pw.println( "MESSAGE"+FS+"SEND"+FS+message );
 		
-		//에코 메세지받기
-		String echoMsg = br.readLine();
-		if (echoMsg == null) {
-			System.out.println("[Client] Disconnection by Server");
-			break;
-		}
-
 		textField.setText("");
 		textField.requestFocus();		
 	}
@@ -148,15 +152,46 @@ public class ChatWindow {
 		
 		@Override
 		public void run() {
-			while( true ) {
-				String line;
+			try {
+				while( true ) {
+					String echoMsg = br.readLine();
+					
+					//프로토콜 분석
+	
+					String[] tokens = echoMsg.split( String.valueOf(FS) );
+					String protocol = tokens[0];
+					String type 	= tokens[1];
+					String content  = tokens[2];
+					
+					
+					if( "MESSAGE".equals( protocol )  ) {
+						textArea.append( content );
+						textArea.append("\n");
+					} else if ("QUIT".equals( protocol )) {
+						consoleLog("---------quit");
+						System.exit(0);
+						socket.close();
+						break;
+					} else {
+					   consoleLog( "에러(2)알수 없는 응답(" + protocol + ")" );
+					}
+					
+					
+					
+					
+				}
+			} catch( IOException e ) {
+				e.printStackTrace();
+			} finally {
 				try {
-					line = br.readLine();
+					if (socket != null && socket.isClosed() == false ) {
+						socket.close();
+					}
 				} catch (IOException e) {
+					// TODO Auto-generated catch block
 					e.printStackTrace();
 				}
-				textArea.append( "둘리:" + line );
-				textArea.append("\n");
+				scanner.close();
 			}
 		}
 	}
