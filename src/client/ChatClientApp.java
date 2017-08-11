@@ -13,42 +13,12 @@ import java.util.Scanner;
 public class ChatClientApp {
 	private static final String SERVER_IP   = "192.168.1.22";
 	private static final int    SERVER_PORT = 8100;
-	static char FS = ':';
-	
-	
-	
-	
-	private static void consoleLog( String msg) {
-		System.out.println("[Client] "+  msg  );
-	}
-	
-	private static String requestJoin(String name) {
-		
-		return  "JOIN"+FS+"ASK"+FS+name; 
-	}
-	
+	private static char FS = ':';
+	private static Scanner scanner = new Scanner(System.in);
 	
 	public static void main(String[] args) {
-		
-				
 		String name = null;
-		Scanner scanner = new Scanner(System.in);
 		Socket socket = null;
-
-		while( true ) {
-			consoleLog("대화명을 입력하세요.");
-			System.out.print(">>> ");
-			name = scanner.nextLine();
-			
-			if (name.isEmpty() == false ) {
-				break;
-			}
-			
-			consoleLog("대화명은 한글자 이상 입력해야 합니다.\n");
-		}
-		scanner.close();
-		
-		
 		
 		// -->JOIN 둘리\r\n
 		try {
@@ -63,61 +33,65 @@ public class ChatClientApp {
 			BufferedReader br = new BufferedReader( new InputStreamReader( is, "utf-8") );
 			PrintWriter pw = new PrintWriter( new OutputStreamWriter( os, "utf-8" ), true);
 			
-			consoleLog("Ask to Join : "+requestJoin(name));
-			pw.println( requestJoin(name) );
 			// 4. Write/Read
 			// <--JOIN:OK\r\n
-			
+			while (true) {
+				name = makeNickName();
+
+				consoleLog("Ask to Join : "+requestJoin(name));
+				pw.println( requestJoin(name) );
 
 				String echoMsg = br.readLine();
 				consoleLog("echoMsg : "+ echoMsg);
-				/*if (echoMsg == null) {
-					//continue;
-				}*/
-				//프로토콜 분석
 
+				//프로토콜 분석
 				String[] tokens = echoMsg.split( String.valueOf(FS) );
 				String protocol = tokens[0];
 				String type 	= tokens[1];
 				String content  = tokens[2];
 				
-				
 				if ("SUCCESS".equals(type)) {
 					new ChatWindow(name, socket, br, pw).show();
+					break;
+				} else if ("FAIL".equals(type)) {
+					continue;
 				}
-				
-				/*if( "JOIN".equals( protocol ) && "SUCCESS".equals( type ) ) {
-					new ChatWindow(name, socket, br).show();
-				} else if ("MESSAGE".equals( protocol )) {
-					//
-				} else if ("QUIT".equals( protocol )) {
-					//break;
-				} else {
-				   consoleLog( "에러:알수 없는 응답(" + protocol + ")" );
-				}*/
-				
-
-				
-			
-			
+			}	
 		} catch( IOException e ) {
 			e.printStackTrace();
 		} finally {
-//			try {
-//				if (socket != null && socket.isClosed() == false ) {
-//					socket.close();
-//				}
-//			} catch (IOException e) {
-//				// TODO Auto-generated catch block
-//				e.printStackTrace();
-//			}
-			//scanner.close();
+			scanner.close();
 		}
 		
-		
-		
+	}
+	
+	
+	private static String makeNickName() {
+		String nickName = null;
 
+		while( true ) {
+			consoleLog("대화명을 입력하세요.");
+			System.out.print(">>> ");
+			nickName = scanner.nextLine();
+			
+			if (nickName.isEmpty() == false ) {
+				break;
+			}
+			
+			consoleLog("대화명은 한글자 이상 입력해야 합니다.\n");
+		}
 		
+		return nickName;
+	}
+	
+	
+	private static void consoleLog( String msg) {
+		System.out.println("[Client] "+  msg  );
+	}
+	
+	
+	private static String requestJoin(String name) {
+		return  "JOIN"+FS+"ASK"+FS+name; 
 	}
 
 }
